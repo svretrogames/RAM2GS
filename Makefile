@@ -1,9 +1,6 @@
-KICAD = /Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
+KICAD = /usr/bin/kicad-cli
 LAYERS = F.Cu,In1.Cu,In2.Cu,B.Cu,F.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts
 CHIPTYPE = $(shell echo $@ | cut -f2 -d"/")
-
-PYTHON = python3
-BOM_SCRIPT =  ../GW_KiCADBuild/export_bom.py
 
 F_PCB = $@/../RAM2GS.kicad_pcb
 F_SCH = $@/../RAM2GS.kicad_sch
@@ -31,6 +28,13 @@ CMD_POS = pcb export pos $(OPT_POS) -o $(F_POS) $(F_PCB)
 CMD_SCHPDF = sch export pdf --black-and-white --no-background-color -o $(F_SCHPDF) $(F_SCH)
 CMD_PCBPDF = pcb export pdf --black-and-white -l F.Fab,Edge.Cuts -o $(F_PCBPDF) $(F_PCB)
 
+# Detect operating system
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE := sed -i ''
+else
+	SED_INPLACE := sed -i
+endif
 
 .PHONY: all clean \
 		Hardware/MAX Hardware/MAX/gerber Hardware/MAX/Documentation \
@@ -51,14 +55,16 @@ Hardware/MAX/gerber Hardware/LCMXO/gerber Hardware/LCMXO2/gerber:
 	$(KICAD) $(CMD_DRILL)
 	$(KICAD) $(CMD_POS)
 	$(KICAD) $(CMD_NETLIST)
-	sed -i '' 's/PosX/MidX/g' $(F_POS)
-	sed -i '' 's/PosY/MidY/g' $(F_POS)
-	sed -i '' 's/Rot/Rotation/g' $(F_POS)
-	$(PYTHON) $(BOM_SCRIPT) $(F_NETLIST) $(F_BOM)
+	# Rename column header for JLCPCB
+	$(SED_INPLACE) 's/PosX/MidX/g' $(F_POS)
+	$(SED_INPLACE) 's/PosY/MidY/g' $(F_POS)
+	#(SED_INPLACE) 's/Rot/Rotation/g' $(F_POS)
+	$(KICAD) sch export bom $(F_SCH) -o $(F_BOM)
 	cp $(F_POS) $(F_POS_VCORE)
 	cp $(F_POS) $(F_POS_JUMPER)
-	sed -i '' '/"R4"/d' $(F_POS_VCORE)
-	sed -i '' '/"U11"/d' $(F_POS_JUMPER)
+	# Remove "do not populate" components.
+	$(SED_INPLACE) '/"R4"/d' $(F_POS_VCORE)
+	$(SED_INPLACE) '/"U11"/d' $(F_POS_JUMPER)
 	rm -f $(F_ZIP)
 	zip -r $(F_ZIP) $@/
 
