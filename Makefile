@@ -1,3 +1,4 @@
+# This Make file works with KiCad 9.0.2 on a Raspian
 KICAD = /usr/bin/kicad-cli
 LAYERS = F.Cu,In1.Cu,In2.Cu,B.Cu,F.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts
 CHIPTYPE = $(shell echo $@ | cut -f2 -d"/")
@@ -58,8 +59,11 @@ Hardware/MAX/gerber Hardware/LCMXO/gerber Hardware/LCMXO2/gerber:
 	# Rename column header for JLCPCB
 	$(SED_INPLACE) 's/PosX/MidX/g' $(F_POS)
 	$(SED_INPLACE) 's/PosY/MidY/g' $(F_POS)
-	#(SED_INPLACE) 's/Rot/Rotation/g' $(F_POS)
-	$(KICAD) sch export bom $(F_SCH) -o $(F_BOM)
+	$(SED_INPLACE) 's/Rot/Rotation/g' $(F_POS)
+	$(KICAD) sch export bom $(F_SCH) -o $(F_BOM) \
+		--group-by "Value,Footprint,LCSC Part" \
+		--fields "Reference,\$${QUANTITY},Value,Footprint,LCSC Part,DNP" \
+		--labels "Reference,Quantity,Value,Footprint,LCSC Part,DNP"
 	cp $(F_POS) $(F_POS_VCORE)
 	cp $(F_POS) $(F_POS_JUMPER)
 	# Remove "do not populate" components.
