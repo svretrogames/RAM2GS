@@ -1,5 +1,15 @@
 # This Make file works with KiCad 9.0.2 on a Raspian
-KICAD = /usr/bin/kicad-cli
+# and with KiCad 10.0.6 on macOS
+
+# Operating System Auto-Detection
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Darwin)
+    KICAD ?= /Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
+else
+    KICAD ?= kicad-cli
+endif
+
 LAYERS = F.Cu,In1.Cu,In2.Cu,B.Cu,F.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts
 CHIPTYPE = $(shell echo $@ | cut -f2 -d"/")
 
